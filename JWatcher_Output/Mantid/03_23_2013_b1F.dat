@@ -1,0 +1,51 @@
+FirstLineOfData=25
+#-----------------------------------------------------------
+# Name: 03_23_2013_b1F.dat
+# Format: Focal Data File 1.0
+# Updated: Fri Oct 04 15:06:19 EDT 2013
+#-----------------------------------------------------------
+ 
+FocalMasterFile=/Applications/JWatcher/mantis.fmf
+ 
+# Observation started: Fri Oct 04 13:59:29 EDT 2013
+StartTime=1380909569540
+# Observation stopped: Fri Oct 04 14:31:48 EDT 2013
+StopTime=1380911508240
+ 
+Answer.1=Female
+Answer.2=6
+Answer.3=FVW
+Answer.4=25
+Answer.5=946
+Answer.6=21
+ 
+ 
+ 
+#BEGIN DATA
+2847, h
+52180, w
+64948, g
+76436, i
+77011, w
+83316, g
+94355, w
+100403, h
+106419, w
+112146, g
+301803, w
+302988, g
+576064, w
+593952, h
+596616, w
+614189, 1
+618640, w
+635170, g
+680017, w
+712824, g
+759017, w
+809131, g
+1029130, w
+1110281, g
+1217769, w
+1247920, g
+1938700, EOF
