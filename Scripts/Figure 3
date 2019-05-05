@@ -1,0 +1,354 @@
+#### Figure 3: This file has code to make reaction norms or individual level responses
+#### Becuase they are based on the statistical models, we will need to re-run the models. 
+#### I have copied the models onto this script for convenience. At the end of the model there is code to extract pridicted values for individual flies in the presence and absence of predator
+
+#### Please use dataset alled Spider_Mantid.csv
+dataset <- read.csv("../CSV/Spider_Mantid.csv", header = T)
+
+## Some packages you will need
+head(dataset)
+require(lme4)
+require(MuMIn)
+require(MCMCglmm) 
+require(coefplot2)
+require(sciplot)
+require(TMB)
+require(effects)
+
+## Preprocessing of dataset as described in other scripts (please see Spider_Ethogram.R for more details)
+dataset$sec.timestamp <- (dataset$time.stamp/2)/1000
+dataset$state.event <- as.character(dataset$state.event)
+dataset$file.num <- factor(dataset$file.num)
+dataset$pred.state <- as.character(dataset$pred.state)
+states <- dataset$state.event 
+states <- as.character(states) 
+timestamp <- dataset$sec.timestamp
+pred.state <- dataset$pred.state
+code <- dataset$code
+
+
+## Getting duration spent in each behavioral state 
+duration <- rep(NA, length(states))
+for (i in 1:length(timestamp)) { duration[i] <- (timestamp[i+1] - timestamp[i])}
+dataset$duration <- duration
+
+## Removing negative durations at EOF
+for (i in 1:length(dataset$state.event)) { 
+  if (dataset$state.event[i] == "end_trial") {dataset$duration[i] <- 0.00}}
+
+## Removing inching from the state and turning it to walking. Please see Spider_Ethogram.R for more details.
+for (i in 1: length(dataset$state)) {
+  if (dataset$state[i] == "inch") {dataset$state[i] <- "walk"}}
+
+## If not done: gives a negative duration at EOF. Please see Spider_Ethogram.R for more details.
+for (i in 1:length(dataset$state.event)) { 
+  if (dataset$state.event[i] == "end_trial") {dataset$pred.state[i] <- "DONE"}}
+
+## This makes sure that the time we spent putting in the spider is taken out of the analysis. Please see Spider_Ethogram.R for more details.
+for (i in 1:length(dataset$code)) { 
+  if (dataset$code[i] == "1") {dataset$pred.state[i] <- "in"}}
+
+dataset$state <- as.character(dataset$state)
+for (i in 1:length(dataset$code)) {
+  if (dataset$code[i] == "EOF") {dataset$state[i] <- "end_trial"}}
+
+
+## Combine walking and running into "locomotion". Model locomotion and grooming in the presence and absence of a predator
+
+for( i in 1: length(dataset$state)) {
+  if (dataset$state [i] == "run") {dataset$state[i] <- "walk"}}
+dataset$state <- factor(dataset$state)
+
+
+## For each indvidual fly, get total time spent grooming with and without predator 
+
+## First reshape the dataset to work for our needs. I've written a cool function that takes two arguments, h == the behavior you are interested in
+## and g is the predator you are interested in. Don't be fooled by the word grooming in the function. It works across behaviors.
+## if you specify "h" correctly, that is. 
+
+#source("~/Dropbox/Abhijna/Ethogram/Code/Modelling_Stats/Time_perState.R")
+
+# source(../../Scripts/"Time_perState.R")
+
+
+
+## Modeling the grooming behavior in the presence and absence of spider predator
+
+spider_groom <- model_dataset("groom", "spider")
+
+str(spider_groom)
+spider_groom$file.num <- factor(spider_groom$file.num)
+spider_groom$rec.time <- factor(as.character(spider_groom$rec.time))
+spider_groom$Humidity <- as.numeric(as.character(spider_groom$Humidity))
+str(spider_groom)
+
+
+#### MCMCglmm package for statistical modeling and anysis #####
+
+## Preprocessing
+spider_groom$file.num <- factor(spider_groom$file.num)
+spider_groom$rec.time <- factor(as.character(spider_groom$rec.time))
+spider_groom$Humidity <- as.numeric(as.character(spider_groom$Humidity))
+str(spider_groom)
+
+## Breaking up rec.time (recording time) into 2 levels and assigning to a new descriptive variable called start.time.
+spider_groom$rec.time <- as.numeric(as.character(spider_groom$rec.time))
+spider_groom$start.time <- cut(spider_groom$rec.time, breaks = 2, labels=c("9.0","10.30"))
+
+## Preprocessing to convert data into mins
+spider_groom$time <- spider_groom$time/60
+## Scaling time by the minimum
+spider_groom$time.min <- spider_groom$time - (min(spider_groom$time))
+## Centering and scaling the predictor variable "time"
+spider_groom$time.cent <- scale(spider_groom$time, scale = FALSE)
+
+## Centering and scaling the predictor variable "Age of fly"
+spider_groom$Age.min <- spider_groom$Age - (min(spider_groom$Age))
+spider_groom$Age.cent <- scale(spider_groom$Age, scale = FALSE)
+
+## Centering and scaling the predictor variable "Temperature at which assay was conducted"
+spider_groom$Temp.min <- spider_groom$Temp - (min(spider_groom$Temp))
+spider_groom$Temp.cent <- scale(spider_groom$Temp, scale = F)
+
+
+## Prior for MCMC modeling 
+prior1.3 <- list(
+  R = list(V = 1, n = 0.002),
+  G = list(
+    G1 = list(V = diag(3), n = 0.002),
+    G2 = list(V = 1, n = 0.002)))
+
+## Model ##
+model1.MCMCglmm <- MCMCglmm(fixed = total.dur ~ time.cent + pred.state + Age.min + Temp.min + start.time + Sex,
+                            random =~ us(1 + pred.state + time.cent):file.num  + Date, data = spider_groom,
+                            nitt=500000, thin=100, burnin=100000, verbose=FALSE, prior = prior1.3)
+summary(model1.MCMCglmm)
+
+
+## Predicted values for grooming
+predictions_groom_MCMC <- predict(model1.MCMCglmm)
+ind_variation_predictions_spi_groom <- data.frame(predictions_groom_MCMC, pred.states, file.num, row.names=1:60)
+
+
+
+## Modeling the locomotion behavior in the presence and absence of spider predator
+spider_walk <- model_dataset("walk", "spider")
+str(spider_walk)
+
+## Preprocessing like before
+spider_walk$file.num <- factor(spider_walk$file.num)
+## Scaling time by the minimum
+spider_walk$rec.time <- factor(as.character(spider_walk$rec.time))
+## Centering and scaling the predictor variable "time"
+spider_walk$Humidity <- as.numeric(as.character(spider_walk$Humidity))
+str(spider_walk)
+
+### Breaking up rec.time (recording time) into 2 levels and assigning to a new descriptive variable called start.time.
+spider_walk$rec.time <- as.numeric(as.character(spider_walk$rec.time))
+spider_walk$start.time <- cut(spider_walk$rec.time, breaks = 2, labels=c("9.0","10.30"))
+
+## Preprocessing to convert data into mins
+spider_walk$time <- spider_walk$time/60
+## Centering and scaling the predictor variable "Time"
+spider_walk$time.min <- spider_walk$time - (min(spider_walk$time))
+spider_walk$time.cent <- scale(spider_walk$time, scale = FALSE)
+
+## Centering and scaling the predictor variable "Age of fly"
+spider_walk$Age.min <- spider_walk$Age - (min(spider_walk$Age))
+spider_walk$Age.cent <- scale(spider_walk$Age, scale = FALSE)
+
+## Centering and scaling the predictor variable "Temperature at which assay was conducted"
+spider_walk$Temp.min <- spider_walk$Temp - (min(spider_walk$Temp))
+spider_walk$Temp.cent <- scale(spider_walk$Temp, scale = F)
+
+
+## Model ##
+model2.MCMCglmm <- MCMCglmm(fixed = total.dur ~ time.cent + pred.state + Age.min + Temp.min + start.time + Sex,
+                            random =~ us(1 + pred.state + time.cent):file.num  + Date, data = spider_walk,
+                            nitt=500000, thin=100, burnin=100000, verbose=FALSE, prior = prior1.3)
+summary(model2.MCMCglmm)
+
+# Predicted values for all walking
+predictions_walk_MCMC <- predict(model2.MCMCglmm)
+pred.states <- gl(n=2, k=30, labels =c("absent", "present")) # generate levels
+file.num <- rep(1:30,2)
+ind_variation_predictions_spi_walk <- data.frame(predictions_walk_MCMC, pred.states, file.num, row.names=1:60)
+
+
+
+### Modeling fly grooming behaviors in the presence and absence of a juvenile mantid
+
+## Preprocessing like before
+mantid_groom <- model_dataset("groom", "mantid")
+mantid_groom$file.num <- factor(mantid_groom$file.num)
+mantid_groom$rec.time <- factor(as.character(mantid_groom$rec.time))
+mantid_groom$Humidity <- as.numeric(as.character(mantid_groom$Humidity))
+
+str(mantid_groom)
+
+## Breaking up rec.time (recording time) into 2 levels and assigning to a new descriptive variable called start.time.
+mantid_groom$rec.time <- as.numeric(as.character(mantid_groom$rec.time))
+mantid_groom$start.time <- cut(mantid_groom$rec.time, breaks = 2, labels=c("9.0","10.30"))
+
+## Centering and scaling the predictor variable "Time"
+mantid_groom$time <- mantid_groom$time/60
+mantid_groom$time.min <- mantid_groom$time - (min(mantid_groom$time))
+mantid_groom$time.cent <- scale(mantid_groom$time, scale = FALSE)
+
+## Centering and scaling the predictor variable "Age of fly"
+mantid_groom$Age.min <- mantid_groom$Age - (min(mantid_groom$Age))
+mantid_groom$Age.cent <- scale(mantid_groom$Age, scale = FALSE)
+
+## Centering and scaling the predictor variable "Temperature at which assay was conducted"
+mantid_groom$Temp.min <- mantid_groom$Temp - (min(mantid_groom$Temp))
+mantid_groom$Temp.cent <- scale(mantid_groom$Temp, scale = F)
+
+## Model ##
+model3.MCMCglmm <- MCMCglmm(fixed = total.dur ~ time.cent + pred.state + Age.min + Temp.min + start.time + Sex,
+                            random =~ us(1 + pred.state + time.cent):file.num  + Date, data = mantid_groom,
+                            nitt=500000, thin=100, burnin=100000, verbose=FALSE, prior = prior1.3)
+summary(model3.MCMCglmm)
+coefplot2(model3.MCMCglmm)
+
+
+### Predicted values for mantid grooming
+predictions_groom_mant_MCMC <- predict(model3.MCMCglmm)
+pred.states <- gl(n=2, k=30, labels =c("absent", "present")) # generate levels
+file.num <- rep(1:30,2)
+ind_variation_predictions_mant_groom <- data.frame(predictions_groom_mant_MCMC, pred.states, file.num, row.names=1:60)
+
+
+
+### Modeling fly walking behaviors in the presence and absence of a juvenile mantid
+
+mantid_walk <- model_dataset("walk", "mantid")
+
+## Preprocessing
+mantid_walk$file.num <- factor(mantid_walk$file.num)
+mantid_walk$rec.time <- factor(as.character(mantid_walk$rec.time))
+mantid_walk$Humidity <- as.numeric(as.character(mantid_walk$Humidity))
+
+## Breaking up rec.time (recording time) into 2 levels and assigning to a new descriptive variable called start.time.
+mantid_walk$rec.time <- as.numeric(as.character(mantid_walk$rec.time))
+mantid_walk$start.time <- cut(mantid_walk$rec.time, breaks = 2, labels=c("9.0","10.30"))
+str(mantid_walk)
+
+## Centering and scaling the predictor variable "Time"
+mantid_walk$time <- mantid_walk$time/60
+mantid_walk$time.min <- mantid_walk$time - (min(mantid_walk$time))
+mantid_walk$time.cent <- scale(mantid_walk$time, scale = FALSE)
+
+## Centering and scaling the predictor variable "Age of fly"
+mantid_walk$Age.min <- mantid_walk$Age - (min(mantid_walk$Age))
+mantid_walk$Age.cent <- scale(mantid_walk$Age, scale = FALSE)
+
+## Centering and scaling the predictor variable "Temperature at which assay was conducted"
+mantid_walk$Temp.min <- mantid_walk$Temp - (min(mantid_walk$Temp))
+mantid_walk$Temp.cent <- scale(mantid_walk$Temp, scale = F)
+
+## Model ##
+model4.MCMCglmm <- MCMCglmm(fixed = total.dur ~ time.cent + pred.state + Age.min + Temp.min + start.time + Sex,
+                            random =~ us(1 + pred.state + time.cent):file.num  + Date, data = mantid_walk,
+                            nitt=500000, thin=20, burnin=20000, verbose=FALSE, prior = prior1.3)
+summary(model4.MCMCglmm)
+
+
+## Predicted values for mantid locomotion
+predictions_walk_mant_MCMC <- predict(model4.MCMCglmm)
+pred.states <- gl(n=2, k=30, labels =c("absent", "present")) # generate levels
+file.num <- rep(1:30,2)
+ind_variation_predictions_mant_walk <- data.frame(predictions_walk_mant_MCMC, pred.states, file.num, row.names=1:60)
+
+
+
+## Then run this code to get the plots ##
+
+pdf()
+setwd("~/Desktop")
+
+par(mfrow =  c(2,2), mar = c(2, 4.2, 2, 1))
+
+lineplot.CI(x.factor = pred.states, response = predictions_groom_MCMC, 
+            group = file.num, data = ind_variation_predictions_spi_groom, legend = F, 
+            lwd = 2, lty = c(rep(1, 30)), pch=NA, ylim = c(0,550),
+            xlab = NA, ylab = "Duration grooming (s)", 
+            cex.axis = 1.5, cex.lab = 1.5)
+box(lwd = 2)
+title (main = "(a)", cex.main = 1.75, font = 1)
+text(1.5,525, "Spider", cex = 1.6)
+
+
+lineplot.CI(x.factor = pred.states, response = predictions_groom_mant_MCMC, 
+            group = file.num, data = ind_variation_predictions_mant_groom, legend = F, 
+            lwd = 2, lty = c(rep(1, 30)), pch=NA, ylim = c(0,550),
+            xlab = NA, ylab = "Duration grooming (s)", 
+            cex.axis = 1.5, cex.lab = 1.5)
+box(lwd = 2)
+title (main = "(c)", cex.main = 1.75, font = 1)
+text(1.5,525, "Mantid", cex = 1.6)
+
+
+
+lineplot.CI(x.factor = pred.states, response = predictions_walk_MCMC, 
+            group = file.num, data = ind_variation_predictions_spi_walk, legend = F, 
+            lwd = 2, lty = c(rep(1, 30)), pch=NA, ylim = c(0, 550),
+            xlab = NA, ylab = "Duration walking (s)", 
+            cex.axis = 1.5, cex.lab = 1.5)
+box(lwd = 2)
+title (main = "(b)", cex.main = 1.75, font = 1)
+text(1.5,525, "Spider", cex = 1.6)
+
+lineplot.CI(x.factor = pred.states, response = predictions_walk_mant_MCMC, 
+            group = file.num, data = ind_variation_predictions_mant_walk, legend = F, 
+            lwd = 2, lty = c(rep(1, 30)), pch=NA, ylim = c(0, 550),
+            xlab = NA, ylab = "Duration walking (s)", 
+            cex.axis = 1.5, cex.lab = 1.5)
+box(lwd = 2)
+title (main = "(d)", cex.main = 1.75, font = 1)
+text(1.5,525, "Mantid", cex = 1.6)
+dev.off()
+
+
+
+setEPS()
+postscript("../../individual_variation.eps", width = 6.5, height = 7, onefile = F,)
+
+
+
+par(mfrow =  c(2,2), mar = c(2, 4.1, 2, 1) + 0.1)
+
+lineplot.CI(x.factor = pred.states, response = predictions_groom_MCMC, 
+            group = file.num, data = ind_variation_predictions, legend = F, 
+            lwd = 2, lty = c(rep(1, 30)), pch=NA, ylim = c(0,550),
+            xlab = NA, ylab = "Duration grooming", 
+            cex.axis = 1.75, cex.lab = 1.45)
+box(lwd = 2)
+title (main = "(a)", cex.main = 1.75, font = 1)
+
+
+lineplot.CI(x.factor = pred.states, response = predictions_groom_mant_MCMC, 
+            group = file.num, data = ind_variation_predictions_mant_groom, legend = F, 
+            lwd = 2, lty = c(rep(1, 30)), pch=NA, ylim = c(0,550),
+            xlab = NA, ylab = "Duration grooming", 
+            cex.axis = 1.75, cex.lab = 1.45)
+box(lwd = 2)
+title (main = "(c)", cex.main = 1.75, font = 1)
+
+lineplot.CI(x.factor = pred.states, response = predictions_walk_MCMC, 
+            group = file.num, data = ind_variation_predictions_spi_walk, legend = F, 
+            lwd = 2, lty = c(rep(1, 30)), pch=NA, ylim = c(0, 550),
+            xlab = NA, ylab = "Duration walking", 
+            cex.axis = 1.75, cex.lab = 1.45)
+box(lwd = 2)
+title (main = "(b)", cex.main = 1.75, font = 1)
+
+lineplot.CI(x.factor = pred.states, response = predictions_walk_mant_MCMC, 
+            group = file.num, data = ind_variation_predictions_mant_walk, legend = F, 
+            lwd = 2, lty = c(rep(1, 30)), pch=NA, ylim = c(0, 550),
+            xlab = NA, ylab = "Duration walking", 
+            cex.axis = 1.75, cex.lab = 1.45)
+box(lwd = 2)
+title (main = "(d)", cex.main = 1.75, font = 1)
+dev.off()
+
+
