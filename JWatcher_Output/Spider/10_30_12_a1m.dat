@@ -1,0 +1,62 @@
+FirstLineOfData=25
+#-----------------------------------------------------------
+# Name: 10_30_12_a1m.dat
+# Format: Focal Data File 1.0
+# Updated: Mon Mar 11 16:36:22 GMT 2013
+#-----------------------------------------------------------
+ 
+FocalMasterFile=C:/Users/Cody/Desktop/JWatcher/Drosophila_ethogram2.fmf
+ 
+# Observation started: Mon Mar 11 16:18:08 GMT 2013
+StartTime=1363018688223
+# Observation stopped: Mon Mar 11 16:29:50 GMT 2013
+StopTime=1363019390696
+ 
+Answer.1=N/A
+Answer.2=5
+Answer.3=39%
+Answer.4=FVW
+Answer.5=1048
+Answer.6=22
+ 
+ 
+ 
+#BEGIN DATA
+9453, g
+11704, w
+49362, h
+55050, r
+59753, g
+99801, r
+104255, g
+602327, 1
+610358, r
+618858, y
+619358, y
+621374, y
+622077, y
+642657, h
+644157, i
+646501, y
+654939, y
+655377, y
+658986, w
+660393, r
+661158, y
+663486, 3
+664049, y
+664955, w
+666752, y
+667299, y
+668737, y
+669440, y
+685393, 2
+687253, j
+688862, 4
+691769, w
+693035, j
+695316, b
+696879, j
+698222, 3
+701426, z
+702473, EOF
