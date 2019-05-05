@@ -1,0 +1,58 @@
+FirstLineOfData=25
+#-----------------------------------------------------------
+# Name: 1_7_14a1F_m.dat
+# Format: Focal Data File 1.0
+# Updated: Wed Feb 12 15:27:00 EST 2014
+#-----------------------------------------------------------
+ 
+FocalMasterFile=/Applications/JWatcher/mantis.fmf
+ 
+# Observation started: Wed Feb 12 14:50:42 EST 2014
+StartTime=1392234642156
+# Observation stopped: Wed Feb 12 15:23:22 EST 2014
+StopTime=1392236602064
+ 
+Answer.1=Female
+Answer.2=7
+Answer.3=FVW
+Answer.4=28
+Answer.5=1037
+Answer.6=20
+ 
+ 
+ 
+#BEGIN DATA
+2186, w
+71589, g
+77797, w
+101162, g
+163595, w
+180459, g
+229047, w
+234191, h
+239126, w
+252490, g
+282917, i
+283310, w
+309834, g
+359510, w
+365973, g
+575828, w
+584238, g
+651535, w
+681918, g
+688503, w
+706416, 1
+708632, w
+722711, g
+765833, w
+770594, g
+950460, w
+954285, g
+1066359, w
+1073247, g
+1692039, w
+1706956, g
+1767647, w
+1769964, g
+1959908, EOF
