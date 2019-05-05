@@ -1,0 +1,171 @@
+### Figure 2: This script plots difference in % time spent in a given behavioral state in the presence vs. absence of a predator 
+### and frequency of at which each behavioral event occurs
+
+## You will need sciplot to use the function bargraph.CI
+library(sciplot)
+
+## This is a function that calculates 95% CIs
+ConfInt <- function(y){
+  mean_x <- mean(y)
+  std_dev_x <- sd(y)
+  std_err_x <- sd(y) / sqrt(length(y))
+  lower_CI_x <- mean_x + std_err_x * (qt(p = 0.05 / 2, df = length(y) - 1))
+  upper_CI_x <- mean_x + std_err_x * (qt(p = (1 - 0.05 / 2), df = length(y) - 1))
+  return(c(lower_CI_x, upper_CI_x))}
+
+
+### Please set your path to the file called Spider_Events_Frequency.csv located in the CSV folder.
+
+## For behaviral events in the presence of a spider
+spider_events <- read.csv("../../Spider_Events_Frequency.csv", h=T)
+
+## Seperating predator present data from predator absent data
+spider_events_only <- subset(spider_events, pred.state == "predator present")
+
+## Mean frequency of performing a behavioral event in the absence of a predator
+no_spider_mean <- by(data = spider_events$freq, INDICES = list(spider_events$behav, spider_events$pred.state), mean)
+
+## Scaling all behavioral events by mean frequency in the absence of a predator
+spider_ab_scale <- spider_events$freq[ spider_events$pred.state == "predator present" & spider_events$behav == "ab"] - no_spider_mean[1, 1]
+spider_fly_scale <- spider_events$freq[ spider_events$pred.state == "predator present" & spider_events$behav == "fly"] - no_spider_mean[2, 1]
+spider_jump_scale <- spider_events$freq[ spider_events$pred.state == "predator present" & spider_events$behav == "jump"] - no_spider_mean[3, 1]
+spider_pause_scale <- spider_events$freq[ spider_events$pred.state == "predator present" & spider_events$behav == "pause"] - no_spider_mean[4, 1]
+spider_retreat_scale <- spider_events$freq[ spider_events$pred.state == "predator present" & spider_events$behav == "retreat"] - no_spider_mean[5, 1]
+spider_turn_scale <- spider_events$freq[ spider_events$pred.state == "predator present" & spider_events$behav == "turn"] - no_spider_mean[6, 1]
+spider_wd_scale <- spider_events$freq[ spider_events$pred.state == "predator present" & spider_events$behav == "wd"] - no_spider_mean[7, 1]
+
+## Adding frequency scale to the dataframe
+spider_events_only$freq.scale <- c(spider_wd_scale,spider_ab_scale,spider_fly_scale, spider_jump_scale, spider_pause_scale, spider_turn_scale, spider_retreat_scale)
+
+
+### For behavioral events in the presence of a Mantid
+### Please set your path to the file called Mantid_Events_Frequency.csv located in the CSV folder.
+
+mantid_events <- read.csv("../../Mantid_Events_Frequency.csv", h=T)
+
+## Seperating predator present data from predator absent data
+mantid_events_only <- subset(mantid_events, pred.state == "predator present")
+
+## Mean frequency of performing a behavioral event in the absence of a predator
+no_mantid_mean <- by(data = mantid_events$freq, INDICES = list(mantid_events$behav, mantid_events$pred.state), mean)
+
+## Scaling all behavioral events by mean frequency in the absence of a predator
+mantid_ab_scale <- mantid_events$freq[ mantid_events$pred.state == "predator present" & mantid_events$behav == "ab"] - no_mantid_mean[1, 1]
+mantid_fly_scale <- mantid_events$freq[ mantid_events$pred.state == "predator present" & mantid_events$behav == "fly"] - no_mantid_mean[2, 1]
+mantid_jump_scale <- mantid_events$freq[ mantid_events$pred.state == "predator present" & mantid_events$behav == "jump"] - no_mantid_mean[3, 1]
+mantid_pause_scale <- mantid_events$freq[ mantid_events$pred.state == "predator present" & mantid_events$behav == "pause"] - no_mantid_mean[4, 1]
+mantid_retreat_scale <- mantid_events$freq[ mantid_events$pred.state == "predator present" & mantid_events$behav == "retreat"] - no_mantid_mean[5, 1]
+mantid_turn_scale <- mantid_events$freq[ mantid_events$pred.state == "predator present" & mantid_events$behav == "turn"] - no_mantid_mean[6, 1]
+mantid_wd_scale <- mantid_events$freq[ mantid_events$pred.state == "predator present" & mantid_events$behav == "wd"] - no_mantid_mean[7, 1]
+
+## Adding frequency scale to the dataframe
+mantid_events_only$freq.scale <- c(mantid_wd_scale,mantid_ab_scale,mantid_fly_scale, mantid_jump_scale, mantid_pause_scale, mantid_turn_scale, mantid_retreat_scale)
+
+
+
+## Behavioral states: calculating the difference in % time spent in each state in the presence or absence of a spider.
+## File name contating these frequency data is Spider_PropState.csv
+#states_spider <- read.csv("../../Spider_PropState.csv", h = T)
+
+## Converting the proportion to % and then releveling to make the behaviors appear in specific order on the graph
+states_spider$prop <- states_spider$prop * 100
+states_spider$behav <- factor(states_spider$behav, levels= c("groom", "walk", "run", "stop", "occl"))
+
+## Excluding occlusion from analysis as occlusion only means the predator was "out of sight"
+states_spider_only <- subset(states_spider, pred.state == "present" & behav != "occl")
+
+## Calculating the mean proportion of time that a fly spent in the absence of a predator
+no_spider_mean <- by(data = states_spider$prop, INDICES = list(states_spider$behav, states_spider$pred.state), mean)
+
+## Subtracting this mean from predator present data to scale
+spider_groom_scale <- states_spider$prop[ states_spider$pred.state == "present" & states_spider$behav == "groom"] - no_spider_mean[1, 1]
+spider_walk_scale <- states_spider$prop[ states_spider$pred.state == "present" & states_spider$behav == "walk"] - no_spider_mean[2, 1]
+spider_run_scale <- states_spider$prop[ states_spider$pred.state == "present" & states_spider$behav == "run"] - no_spider_mean[3, 1]
+spider_stop_scale <- states_spider$prop[ states_spider$pred.state == "present" & states_spider$behav == "stop"] - no_spider_mean[4, 1]
+
+## Adding the newly calculated scaled values to the dataframe
+states_spider_only$prop.scale <- c(spider_groom_scale, spider_walk_scale, spider_run_scale, spider_stop_scale)
+
+
+
+## Behavioral states: calculating the difference in % time spent in each state in the presence or absence of a Mantid.
+## File name contating these frequency data is Mantid_PropState.csv
+## read.csv("../../Mantid_PropState.csv", h=T)
+
+## Converting the proportion to % and then releveling to make the behaviors appear in specific order on the graph
+states_mantid$prop <- states_mantid$prop * 100
+states_mantid$behav <- factor(states_mantid$behav, levels= c("groom", "walk", "run", "stop", "occl"))
+
+## Excluding occlusion from analysis as occlusion only means the predator was "out of sight"
+states_mantid_only <- subset(states_mantid, pred.state == "predator present" & behav != "occl")
+
+## Calculating the mean proportion of time that a fly spent in the absence of a predator
+no_mantid_mean <- by(data = states_mantid$prop, INDICES = list(states_mantid$behav, states_mantid$pred.state), mean)
+
+## Subtracting this mean from predator present data to scale
+mantid_groom_scale <- states_mantid$prop[ states_mantid$pred.state == "predator present" & states_mantid$behav == "groom"] - no_mantid_mean[1, 1]
+mantid_walk_scale <- states_mantid$prop[ states_mantid$pred.state == "predator present" & states_mantid$behav == "walk"] - no_mantid_mean[2, 1]
+mantid_run_scale <- states_mantid$prop[ states_mantid$pred.state == "predator present" & states_mantid$behav == "run"] - no_mantid_mean[3, 1]
+mantid_stop_scale <- states_mantid$prop[ states_mantid$pred.state == "predator present" & states_mantid$behav == "stop"] - no_mantid_mean[4, 1]
+
+## Adding the newly calculated scaled values to the dataframe
+states_mantid_only$prop.scale <- c(mantid_groom_scale, mantid_walk_scale, mantid_run_scale, mantid_stop_scale)
+
+
+## Plotting all four graphs in one plot window. This plot was further processed in Inkscape to look like Figure 2 of the paper
+
+par(mfrow = c(2,2), oma = c(1,4,2,0.5) + 0.1, mar = c(1,0,1,0))
+
+bargraph.CI(x.factor = behav, group = , response = freq.scale, data = spider_events_only, cex.axis = 1.2, cex.lab = 2, cex.sub = 3,
+            legend = F, xpd = T, xlab = NA, x.leg = 6, ylim = c(-1, 5), 
+            err.width = 0.06, ci.fun = function(y) ConfInt(y), ylab = "#occurrances/min", 
+            col = "gray35", xaxt = "n")
+
+box(lwd = 3)
+text (8,4.5, "(a)", cex = 1.55, font = 2)
+text (0.75,-0.5, "ab", cex = 1.25, font = 1)
+text (1.9,-0.54, "fly", cex = 1.25, font = 1)
+text (3.1,-0.54, "jump", cex = 1.25, font = 1)
+text (4.3,-0.58, "pause", cex = 1.25, font = 1)
+text (5.52,-0.5, "retreat", cex = 1.25, font = 1)
+text (6.75,-0.5, "turn", cex = 1.25, font = 1)
+text (7.9,-0.5, "wd", cex = 1.25, font = 1)
+
+
+bargraph.CI(x.factor = behav, group = , response = freq.scale, data = mantid_events_only, cex.axis = 1.5, cex.lab = 1.5, cex.sub = 3,
+            legend = F, xpd = T, xlab = NA, x.leg = 6, ylim = c(-1, 5), err.width = 0.06, ci.fun = function(y) ConfInt(y), 
+             col = "gray35", yaxt = "n", xaxt = "n", ylab = NA)
+
+box(lwd = 3)
+text (8,4.5, "(c)", cex = 1.55, font = 2)
+text (0.75,-0.5, "ab", cex = 1.25, font = 1)
+text (1.9,-0.54, "fly", cex = 1.25, font = 1)
+text (3.1,-0.54, "jump", cex = 1.25, font = 1)
+text (4.3,-0.585, "pause", cex = 1.25, font = 1)
+text (5.52,-0.5, "retreat", cex = 1.25, font = 1)
+text (6.75,-0.5, "turn", cex = 1.25, font = 1)
+text (7.9,-0.5, "wd", cex = 1.25, font = 1)
+
+
+bargraph.CI(x.factor = behav, group = , response = prop.scale, data = states_spider_only, col = "gray35", cex.axis = 1.2, 
+            cex.lab = 1.5, cex.sub = 3, xpd = T, xlab = NA, x.leg = 12, ylim = c(-50, 40), err.width = 0.03, 
+            ci.fun = function(y) ConfInt(y), ylab = "Change in % time", xaxt = "n")
+box(lwd = 3)
+text (4.55,28, "(b)", cex = 1.55, font = 2)
+text (0.7,15, "groom", cex = 1.25, font = 1)
+text (2,-25, "walk", cex = 1.25, font = 1)
+text (3.1,-25, "run", cex = 1.25, font = 1)
+text (4.3,-25, "stop", cex = 1.25, font = 1)
+
+
+
+bargraph.CI(x.factor = behav, group = , response = prop.scale, data = states_mantid_only, col = "gray35", cex.axis = 1.5, 
+            cex.lab = 1.2, cex.sub = 3, xpd = T, xlab = NA, x.leg = 12, ylim = c(-50, 40), err.width = 0.03, 
+            ci.fun = function(y) ConfInt(y), ylab = NA, yaxt = "n", xaxt = "n", err.lty = 1)
+box(lwd = 3)
+text (4.55,28, "(d)", cex = 1.55, font = 2)
+text (0.7,15, "groom", cex = 1.25, font = 1)
+text (2,-25, "walk", cex = 1.25, font = 1)
+text (3.1,-25, "run", cex = 1.25, font = 1)
+text (4.3,-25, "stop", cex = 1.25, font = 1)
+
