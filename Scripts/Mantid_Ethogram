@@ -2,7 +2,7 @@
 ### Please set your path to the right file: Mantid_Ethograms.csv 
 
 
-mantiddata <- read.csv(file = "/Users/abhijnaparigi/Dropbox/Abhijna/Ethogram/Datasets/Mantid/MantidEthogram_10Oct13.csv", header = T)
+mantiddata <- read.csv(file = "../../Mantid_Ethograms.csv", header = T)
 
 setwd("~/Desktop")
 
